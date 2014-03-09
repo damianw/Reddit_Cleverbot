@@ -68,6 +68,7 @@ class Reddit_Cleverbot:
         print "Could not find conversation! Ignoring for now."
         pass
       self.reply(item)
+      item.mark_as_read()
       time.sleep(interval)
 
   def reply_to_summons(self):
