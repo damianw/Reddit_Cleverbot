@@ -56,7 +56,7 @@ class Reddit_Cleverbot:
     if self.reddit.get_info(thing_id=comment.parent_id).author.name == self.username:
       # TODO: handle a threaded conversation. most likely will need a DB. ugh
       pass
-    response = ask_fresh(comment.body)
+    response = self.ask_fresh(comment.body)
     while True:
       try:
         comment.reply(response)
