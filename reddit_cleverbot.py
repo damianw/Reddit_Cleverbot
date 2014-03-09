@@ -8,6 +8,7 @@ import praw
 from praw import Reddit
 from cleverbot import Cleverbot
 from collections import deque
+from copy import copy
 
 USERAGENT = "Reddit_Cleverbot/1.0"
 SUMMON = '/u/Reddit_Cleverbot'
@@ -21,10 +22,10 @@ class Reddit_Cleverbot:
     self.subreddit = subreddit
     self.reddit = Reddit(useragent)
     self.reddit.login(username, password)
-    self.cleverbot = Cleverbot()
     self.stopped = True
     self.thread = None
     self.done = set()
+    self.conversations = dict()
 
   def random_hot_comment(self):
     sub = self.reddit.get_subreddit(self.subreddit)
@@ -48,23 +49,26 @@ class Reddit_Cleverbot:
     # print "--> " + str(len(children)) + " summons found!"
     return [self.reddit.get_info(thing_id=comment.parent_id) for comment in children]
 
-  def ask_fresh(self, body):
-    self.cleverbot = Cleverbot()
-    return self.cleverbot.ask(body)
-
   def reply(self, comment):
     if self.reddit.get_info(thing_id=comment.parent_id).author.name == self.username:
-      # TODO: handle a threaded conversation. most likely will need a DB. ugh
+      # TODO: handle a threaded conversation over restarts. will need a DB. ugh
       pass
-    response = self.ask_fresh(comment.body)
-    while True:
-      try:
-        comment.reply(response)
-        break
-      except RateLimitExceeded:
-        print "Rate limit exceeded. Waiting 60 seconds."
-        time.sleep(60)
+    if comment.parent_id in self.conversations:
+      cleverbot = self.conversations[comment.parent_id]
+    else:
+      cleverbot = Cleverbot()
+    response = cleverbot.ask(comment.body)
+    post = comment.reply(response)
     self.done.add(comment.id)
+    self.conversations[post.id] = copy(cleverbot)
+
+  def reply_unread(self, interval):
+    for item in self.reddit.get_unread():
+      if item.parent_id not in self.conversations:
+        print "Could not find conversation! Ignoring for now."
+        pass
+      self.reply(item)
+      time.sleep(interval)
 
   def reply_to_summons(self):
     summons = self.get_summoned_comments()
@@ -73,6 +77,7 @@ class Reddit_Cleverbot:
 
   def _run_random(self, interval):
     while not self.stopped:
+      self.reply_unread(interval)
       self.reply(self.random_hot_comment())
       time.sleep(interval)
 
