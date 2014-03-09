@@ -71,7 +71,7 @@ class Reddit_Cleverbot:
 
   def run_random(self, interval):
     self.stopped = False
-    self.thread = Thread(target=self._run, args=(interval,))
+    self.thread = Thread(target=self._run_random, args=(interval,))
     self.thread.start()
 
   def stop(self):
